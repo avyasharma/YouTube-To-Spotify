@@ -29,10 +29,18 @@ class Automate:
         if ", " in song:
             features = song.split(", ")
             if "& " in features[len(features) - 1]:
-                features[len(features) - 1] = song[song.index("&") + 2:]
+                temp = features[len(features) - 1]
+                features[len(features) - 1] = temp[: temp.index("&") - 1]
+                features.append(song[song.index("&") + 2:])
+            elif " and " in features[len(features) - 1]:
+                temp = features[len(features) - 1]
+                features[len(features) - 1] = temp[: temp.index(" and ")]
+                features.append(temp[temp.index(" and ") + 5:])
             artists_in_song = [x.lower() for x in features]
         elif "&" in song:
             artists_in_song = [j.lower() for j in song.split(" & ")]
+        elif " and " in song:
+            artists_in_song = [y.lower() for y in song.split(" and ")]
         else:
             if song[len(song) - 1] == ' ':
                 artists_in_song = [song[:len(song) - 1].lower()]
@@ -54,6 +62,10 @@ class Automate:
         if "&" in a:
             if "feat" not in a and "ft" not in a and ", " not in a:
                 artists = [i.lower() for i in a.split(" & ")]
+
+        if " and " in a:
+            if "feat" not in a and "ft" not in a and ", " not in a:
+                artists = [i.lower() for i in a.split(" and ")]
 
         if "feat" in a:
             artists.append(a[0: a.index(" feat")].lower())
@@ -77,12 +89,13 @@ class Automate:
         elif " x " in a:
             artists = [u.lower() for u in a.split(" x ")]
 
-        elif "&" not in a:
+        elif "&" not in a and " and " not in a:
             artists.append(a.lower())
 
         # Get the artists from the right side of the " – "
         if "*" in t:
-            t = t[0: t.index("*") - 1]
+            if "OFFICIAL" in t[t.index("*") + 1:]:
+                t = t[0: t.index("*") - 1]
         if "(" in t:
             p_string = t[t.index("(") + 1: t.index(")")]
             if "feat" in p_string:
@@ -157,7 +170,7 @@ class Automate:
         if len(artists) == 3 and artists[-1] == artists[-2]:
             del artists[len(artists) - 1]
 
-
+        artists = [x for x in artists if x not in t]
 
         return (artists, t)
 
@@ -180,7 +193,16 @@ class Automate:
                 s_title = item["snippet"]["title"]
                 if get_artist_title(s_title) != None:
                     all_artists, song = self.get_artists_and_title(s_title)
-                    self.songs[song.lower()] = all_artists
+                    if song.lower() == "why don't we":
+                        temp = "Why Don't We"
+                        song = all_artists[0]
+                        all_artists[0] = "why don't we"
+
+                    if self.songs.get(song.lower()) != None:
+                        self.songs[song.lower() + "; " + all_artists[0]] = all_artists
+                    else:
+                        self.songs[song.lower()] = all_artists
+
 
             if "nextPageToken" not in data:
                 next = False
@@ -199,19 +221,31 @@ class Automate:
             sp = spotipy.Spotify(auth=token)
             playlist = sp.user_playlist_create(user_id, input("Enter playlist title: "))
             song_uri_list = []
+            # verified_artists = self.verify_artists(sp, ['gunna', 'roddy rich'])
+            # print(verified_artists)
             for keys in self.songs:
-                song_uri = self.search_for_song(keys, self.songs[keys], sp)
-                if song_uri != '':
-                    song_uri_list.append(song_uri)
+                if "; " in keys:
+                    song_name = keys[: keys.index("; ")]
                 else:
-                    # If song not found, verify that the artists are spelled correctly. Then try again. If it doesn't work again, try it this way. Otherwise, don't add.
-                    song_uri = self.search_for_song(self.songs[keys][0] + " " + keys, self.songs[keys], sp)
+                    song_name = keys
+                if self.songs[keys][0] != "kiki do you love me":
+                    song_uri = self.search_for_song(song_name, self.songs[keys], sp)
                     if song_uri != '':
                         song_uri_list.append(song_uri)
                     else:
-                        not_found.append(keys)
+                        # If song not found, verify that the artists are spelled correctly. Then try again. If it doesn't work again, try it this way. Otherwise, don't add.
+                        song_uri = self.search_for_song(self.songs[keys][0] + " " + song_name, self.songs[keys], sp)
+                        if song_uri != '':
+                            song_uri_list.append(song_uri)
+                        else:
+                            verified_artists = self.verify_artists(sp, self.songs[keys])
+                            song_uri = self.search_for_song(song_name, [x.lower() for x in verified_artists], sp)
+                            if song_uri != '':
+                                song_uri_list.append(song_uri)
+                            else:
+                                print(keys + " not found.")
+                                not_found.append(keys)
 
-            sp.user_playlist_add_tracks(user_id, playlist['id'], song_uri_list)
             if len(not_found) != 0:
                 for s in not_found:
                     print(s)
@@ -222,19 +256,19 @@ class Automate:
                 # else:
                 #     song_uri_list.append(song_uri)
             # print(song_uri)
-            '''if len(song_uri_list) > 100:
+            if len(song_uri_list) > 100:
                 divisible = int(len(song_uri_list) / 100)
                 remainder = len(song_uri_list) % 100
 
                 for i in range(1, divisible + 1):
                     if i == 1:
-                        self.add_song(user_id, playlist['id'], song_uri_list[0: 100], sp)
+                        sp.user_playlist_add_tracks(user_id, playlist['id'], song_uri_list[0: 100])
                     else:
-                        self.add_song(user_id, playlist['id'], song_uri_list[(i - 1) * 100: i * 100], sp)
+                        sp.user_playlist_add_tracks(user_id, playlist['id'], song_uri_list[(i - 1) * 100: i * 100])
 
-                self.add_song(user_id, playlist['id'], song_uri_list[divisible * 100: len(song_uri_list)], sp)
+                sp.user_playlist_add_tracks(user_id, playlist['id'], song_uri_list[divisible * 100: len(song_uri_list)])
             else:
-                self.add_song(user_id, playlist['id'], song_uri_list, sp)'''
+                sp.user_playlist_add_tracks(user_id, playlist['id'], song_uri_list)
 
 
             # q = 'Sam Smith'
@@ -265,6 +299,7 @@ class Automate:
         track_info = []
         results = spotify_client.search(q=song_title, type='track')
         song_uri = ''
+        print(song_title)
         for i in results['tracks']['items']:
             if len(song_artists) == 2 and len(i['artists']) >= 2:
                 print("both at least two")
@@ -346,18 +381,6 @@ class Automate:
         # print(track_info)
         # if song_title in track_info:
         #         return track_info[song_title]
-
-
-    """
-    def add_song(self, user_id, playlist_id, uris, spotify_client):
-
-        1. Print out the dictionary of all songs and titles.
-        2. Search through spotify for such songs. Print out what is returned
-        3. After doing so, handle the situation in which you can't find what you are looking for.
-        4. (DO THIS AT THE END) If song not in spotify, then download song as mp4 and then add to spotify.
-
-        spotify_client.user_playlist_add_tracks(user_id, playlist_id, uris)
-    """
 
 def main():
     dummy = Automate()
