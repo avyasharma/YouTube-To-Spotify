@@ -221,8 +221,6 @@ class Automate:
             sp = spotipy.Spotify(auth=token)
             playlist = sp.user_playlist_create(user_id, input("Enter playlist title: "))
             song_uri_list = []
-            # verified_artists = self.verify_artists(sp, ['gunna', 'roddy rich'])
-            # print(verified_artists)
             for keys in self.songs:
                 if "; " in keys:
                     song_name = keys[: keys.index("; ")]
@@ -249,13 +247,7 @@ class Automate:
             if len(not_found) != 0:
                 for s in not_found:
                     print(s)
-                # print(song_uri)
-                # print(keys[0] + ": " + keys[1] + " " + song_uri)
-                # if song_uri is None:
-                #     count += 1
-                # else:
-                #     song_uri_list.append(song_uri)
-            # print(song_uri)
+
             if len(song_uri_list) > 100:
                 divisible = int(len(song_uri_list) / 100)
                 remainder = len(song_uri_list) % 100
@@ -270,12 +262,6 @@ class Automate:
             else:
                 sp.user_playlist_add_tracks(user_id, playlist['id'], song_uri_list)
 
-
-            # q = 'Sam Smith'
-            # song_uri = self.search_for_song(q, "How Do You Sleep?", sp)
-            # self.add_song(user_id, playlist['id'], [song_uri], sp)
-            # print(count)
-            # return playlist
         else:
             print("Cant get token for " + user_id)
             return None
@@ -329,10 +315,7 @@ class Automate:
 
                 if correct_version:
                     break
-                """if i['artists'][0]['name'].lower() in song_artists and i['artists'][1]['name'].lower() in song_artists and i['artists'][2]['name'].lower() in song_artists:
-                    print(i['uri'])
-                    song_uri = i['uri']
-                    break"""
+
             elif (len(song_artists) >= 3 and len(i['artists']) >= 2):
                 print("one at least three")
                 if i['artists'][0]['name'].lower() in song_artists and i['artists'][1]['name'].lower() in song_artists:
@@ -350,45 +333,11 @@ class Automate:
 
         return song_uri
 
-
-
-        """
-            returns:
-            [{'external_urls': {'spotify': 'https://open.spotify.com/artist/0du5cEVh5yTK9QJze8zA0C'}, 'href': 'https://api.spotify.com/v1/artists/0du5cEVh5yTK9QJze8zA0C',
-            'id': '0du5cEVh5yTK9QJze8zA0C', 'name': 'Bruno Mars', 'type': 'artist', 'uri': 'spotify:artist:0du5cEVh5yTK9QJze8zA0C'},
-            {'external_urls': {'spotify': 'https://open.spotify.com/artist/4kYSro6naA4h99UJvo89HB'}, 'href': 'https://api.spotify.com/v1/artists/4kYSro6naA4h99UJvo89HB',
-            'id': '4kYSro6naA4h99UJvo89HB', 'name': 'Cardi B', 'type': 'artist', 'uri': 'spotify:artist:4kYSro6naA4h99UJvo89HB'}]
-
-            !!!!TO GET SONGS WITH MULTIPLE ARTISTS VS. THE VERSION OF THE SONG WITH ONE ARTIST!!!!
-                COUNT THE NUMBER OF ARTISTS EVERYTIME THERE IS A COMMA, AMPERSAND, FEAT, FT., OR REMIX. BASED ON THAT,
-                CHOOSE THE SONG WITH THAT NUMBER. HAVE THE TRACK_INFO RECORD THE NUMBER OF ARTISTS FOR THAT SONG. DONE
-
-            artist = i['album']['artists'][0]['name']
-            uri = i['uri']
-            # print(artist + " " + uri)
-            track_info.append((artist, uri))
-        # print(track_info)
-        if " " in song_artist and song_artist[len(song_artist) - 1] == " ":
-            song_artist = song_artist[0: len(song_artist) - 1]
-
-        for x in track_info:
-            if x[0].lower() == song_artist.lower():
-                return x[1]
-                break"""
-
-        # for i, t in enumerate(results['tracks']['items']):
-        #     track_info[t['name']] = t['uri']
-        # print(track_info)
-        # if song_title in track_info:
-        #         return track_info[song_title]
-
 def main():
     dummy = Automate()
 
     dummy.get_songs()
 
     dummy.create_playlist()
-
-    # Test Playlist: https://www.youtube.com/playlist?list=PLY4CekAOIcDjwx4VatbHa_rY7pV0Hs3zW
 
 main()
